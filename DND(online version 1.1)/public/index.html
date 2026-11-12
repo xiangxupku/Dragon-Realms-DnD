@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14100c">
+<title>Dragon Realms D&amp;D</title>
+<style>
+:root { --bg:#14100c; --panel:#241b13; --panel2:#2f2318; --gold:#ffd166; --text:#f3e9d7; --muted:#b9a88f; --red:#e74c3c; --green:#3fd16b; --blue:#4aa3ff; --border:#5a4630; }
+* { box-sizing:border-box; }
+body { margin:0; background:radial-gradient(circle at 50% 0%, #2a1f14, var(--bg) 70%); color:var(--text); font-family:'Segoe UI', system-ui, sans-serif; min-height:100vh; }
+h1,h2,h3 { font-family:Georgia, 'Times New Roman', serif; color:var(--gold); margin:.3em 0; }
+button { background:linear-gradient(#6b4a2a,#4a321c); color:var(--text); border:2px solid var(--border); border-radius:8px; padding:8px 14px; font-size:15px; cursor:pointer; font-weight:600; }
+button:hover:not(:disabled) { border-color:var(--gold); filter:brightness(1.15); }
+button:disabled { opacity:.4; cursor:not-allowed; }
+button.big { font-size:20px; padding:14px 26px; min-width:260px; margin:6px; }
+button.gold { background:linear-gradient(#e0a93a,#a8701a); color:#1b1206; border-color:#ffe199; }
+button.on { border-color:var(--gold); box-shadow:0 0 10px var(--gold); }
+input, select { background:#120d08; color:var(--text); border:2px solid var(--border); border-radius:6px; padding:8px; font-size:15px; }
+.screen { display:none; padding:16px; max-width:1300px; margin:0 auto; }
+.screen.show { display:block; }
+.center { text-align:center; }
+.card { background:var(--panel); border:2px solid var(--border); border-radius:12px; padding:14px; margin:8px 0; }
+.muted { color:var(--muted); font-size:13px; }
+.row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+#menu .title { font-size:56px; margin-top:30px; text-shadow:0 0 20px #ff7b00; }
+#classGrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; }
+.cls { padding:8px; text-align:center; font-size:14px; }
+.cls .ic { font-size:26px; display:block; }
+.statrow { display:grid; grid-template-columns:110px 40px 36px 36px 1fr; gap:6px; align-items:center; margin:4px 0; }
+.statrow b { font-size:18px; text-align:center; }
+.statrow button { padding:2px 0; }
+/* ---- game screen always fits inside the window ---- */
+#game.show { display:flex; flex-direction:column; height:100vh; height:100dvh; max-width:none; padding:6px 8px; overflow:hidden; }
+#gameWrap { flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 310px; gap:8px; }
+#leftCol { min-height:0; min-width:0; display:flex; align-items:center; justify-content:center; }
+#side { min-height:0; overflow-y:auto; display:flex; flex-direction:column; }
+#side .logCard { flex:1; min-height:110px; display:flex; flex-direction:column; }
+#side #log { flex:1; height:auto; min-height:60px; }
+@media (max-width:900px) {
+  #gameWrap { grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); }
+  #leftCol { align-items:flex-start; }
+}
+#topbar { flex:none; display:flex; justify-content:space-between; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:4px; font-size:13px; }
+#topbar button { padding:4px 10px; font-size:13px; }
+#turnInfo { font-weight:700; color:var(--gold); }
+#board { position:relative; }
+#cv { width:100%; height:100%; display:block; border:3px solid var(--border); border-radius:10px; background:#000; touch-action:manipulation; image-rendering:auto; transition:filter .4s; }
+#hint { position:absolute; top:6px; left:50%; transform:translateX(-50%); background:rgba(20,14,8,.85); border:1px solid var(--gold); border-radius:14px; padding:3px 12px; font-size:13px; color:#ffdf9e; z-index:4; pointer-events:none; max-width:90%; text-align:center; }
+#hint:empty { display:none; }
+#infoBox { position:absolute; left:6px; bottom:6px; max-width:min(62%,420px); background:rgba(20,14,8,.88); border:1px solid var(--border); border-radius:8px; padding:6px 8px; font-size:12px; z-index:3; pointer-events:none; }
+#infoBox:empty { display:none; }
+#dice { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); background:rgba(20,14,8,.92); border:2px solid var(--gold); border-radius:12px; padding:10px 16px; min-width:280px; max-width:92%; text-align:center; display:none; z-index:5; }
+#dice .dies { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin:8px 0; }
+.die { width:46px; height:46px; border-radius:9px; background:#f8f1e0; color:#222; font-weight:800; font-size:20px; display:flex; align-items:center; justify-content:center; position:relative; box-shadow:0 3px 0 #a99; }
+.die small { position:absolute; bottom:1px; right:3px; font-size:9px; color:#776; }
+.die.d20 { background:#ffe8a3; }
+.die.crit { background:#ffd700; box-shadow:0 0 14px #ffd700; }
+.die.nat1 { background:#ff8a80; }
+.die.enemy { background:#ffcdd2; }
+.die.rolling { animation:spin .15s linear infinite; }
+@keyframes spin { 0%{transform:rotate(-12deg) scale(1)} 50%{transform:rotate(12deg) scale(1.1)} 100%{transform:rotate(-12deg) scale(1)} }
+#modal { position:absolute; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:6; border-radius:10px; }
+/* ---- menu ---- */
+#menu.show { display:block; position:relative; min-height:100vh; max-width:none; padding:0; overflow:hidden; }
+#menuBg { position:fixed; inset:0; width:100%; height:100%; z-index:0; }
+.menuWrap { position:relative; z-index:1; max-width:1000px; margin:0 auto; padding:10px 14px; }
+.subtitle { color:#e8d9b8; font-size:15px; margin:0 0 8px; text-shadow:0 1px 3px #000; }
+.menuGrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:760px) { .menuGrid { grid-template-columns:1fr; } }
+.heroShow { background:rgba(36,27,19,.88); }
+.heroShow .hs { display:flex; gap:10px; align-items:center; padding:6px; border-bottom:1px solid #4a3a28; }
+.heroShow .hs .big { font-size:42px; }
+.menuBtns { display:flex; flex-direction:column; gap:8px; }
+.mbtn { display:grid; grid-template-columns:52px 1fr; grid-template-rows:auto auto; text-align:left; padding:10px 12px; border-radius:12px; background:linear-gradient(135deg,rgba(107,74,42,.95),rgba(58,40,24,.95)); }
+.mbtn .mi { grid-row:span 2; font-size:34px; align-self:center; }
+.mbtn b { font-size:19px; font-family:Georgia,serif; }
+.mbtn small { color:#e8d9b8; font-weight:400; font-size:12px; }
+.mbtn.gold small { color:#3a2408; }
+.mbtn:hover:not(:disabled) { transform:translateY(-2px); }
+.smallBtns button { flex:1; font-size:13px; padding:6px; }
+.journeyCard { background:rgba(36,27,19,.88); }
+.journey { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin-top:6px; font-size:13px; }
+.journey .stop { background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:4px 8px; text-align:center; }
+.journey .stop b { display:block; font-size:22px; }
+.how { background:rgba(36,27,19,.88); } .how ul { font-size:13px; margin:6px 0 0; }
+/* ---- equipment ---- */
+.equip { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-top:4px; }
+.eqs { background:#120d08; border:2px solid var(--border); border-radius:8px; padding:4px; text-align:center; font-size:11px; cursor:pointer; min-height:62px; }
+.eqs .ic { font-size:22px; display:block; }
+.eqs .lab { color:var(--muted); font-size:10px; }
+.eqs .bar { height:6px; }
+/* ---- talk / shop dialog ---- */
+#talk { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.35); z-index:7; border-radius:10px; }
+#talk .card { max-width:620px; width:94%; max-height:94%; overflow:auto; background:rgba(36,27,19,.97); border-color:var(--gold); font-size:13px; }
+#talk .who { display:flex; gap:10px; align-items:center; }
+#talk .who .face { font-size:40px; }
+#talk .bubble { background:#fff8e6; color:#3a2408; border-radius:12px; padding:6px 10px; font-size:14px; }
+/* ---- wheel ---- */
+#wheelBox { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:40; }
+#wheelBox .card { text-align:center; border-color:var(--gold); max-width:380px; width:92%; }
+#wheelCv { width:min(300px,70vw); height:auto; }
+#wheelRes { font-size:18px; font-weight:700; color:var(--gold); min-height:24px; }
+/* ---- tests ---- */
+.quiz button.ans { display:block; width:100%; margin:5px 0; text-align:left; font-size:15px; }
+.quiz button.hid { text-decoration:line-through; opacity:.35; }
+#popup { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:50; }
+#popup .card { max-width:420px; width:90%; text-align:center; border-color:var(--gold); }
+#modal.village { align-items:flex-start; background:rgba(0,0,0,.25); overflow:auto; }
+#modal.village .card { max-width:640px; margin-top:8px; background:rgba(36,27,19,.94); }
+.shop { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:6px; margin:8px 0; }
+.shop button { font-size:13px; padding:6px; text-align:left; }
+.shop button .ic { font-size:22px; float:left; margin-right:6px; }
+#modal .card { max-width:520px; width:94%; max-height:94%; overflow:auto; text-align:center; padding:10px; font-size:13px; }
+#modal h2 { font-size:22px; margin:2px 0; }
+#side .card { padding:6px 8px; margin:0 0 6px; font-size:13px; flex:none; }
+#side .mini { margin:2px 0; padding:3px 6px; }
+#side .bar { height:11px; margin:2px 0; }
+.slot { aspect-ratio:auto !important; height:36px; font-size:20px !important; }
+#party, #foes { max-height:150px; overflow-y:auto; }
+/* compact class picker / stats screens so they fit */
+#pickClass, #create { padding:8px 12px; }
+#pickClass .title { margin:4px 0 !important; font-size:32px !important; }
+#pickClass p { margin:4px 0; }
+#pickClass .card, #create .card { padding:8px 10px; margin:6px 0; }
+#classGrid { grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:5px; }
+#classGrid h3 { font-size:15px; margin:2px 0; }
+.cls { padding:4px; font-size:12px; }
+.cls .ic { font-size:20px; }
+#classInfo, #chosenClass { font-size:13px; }
+#classInfo h3, #chosenClass h3 { margin:0 0 2px; font-size:17px; }
+.statrow { margin:2px 0; }
+button.big { font-size:17px; padding:10px 20px; min-width:220px; margin:4px; }
+#menu .title { margin-top:10px; font-size:42px; }
+.shop { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:4px; }
+.shop button { font-size:11px; padding:4px; line-height:1.25; }
+.shop button .ic { font-size:18px; }
+.bar { height:12px; background:#000; border-radius:6px; overflow:hidden; margin:3px 0; position:relative; }
+.bar > div { height:100%; }
+.bar span { position:absolute; inset:0; font-size:10px; text-align:center; line-height:12px; color:#fff; text-shadow:0 0 2px #000; }
+#actions { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+#actions { gap:4px !important; }
+#actions button { font-size:12px; padding:5px 3px; }
+#actions .wide { grid-column:span 2; }
+#inv { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
+.slot { aspect-ratio:1; background:#120d08; border:2px solid var(--border); border-radius:8px; font-size:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; }
+.slot.sel { border-color:var(--gold); box-shadow:0 0 8px var(--gold); }
+#log { height:170px; overflow:auto; font-size:12px; line-height:1.45; }
+#log div { border-bottom:1px solid #3a2c1e; padding:1px 0; }
+.pips span { display:inline-block; width:16px; height:10px; margin-right:2px; border-radius:3px; background:#3a2c1e; }
+.pips span.f { background:linear-gradient(#fff3b0,#ffc400); box-shadow:0 0 5px #ffd700; }
+.mini { font-size:12px; margin:3px 0; padding:4px 6px; border-radius:6px; background:var(--panel2); }
+.mini.cur { outline:2px solid var(--gold); }
+#hint { min-height:20px; font-size:13px; color:#ffdf9e; }
+.tribe { display:inline-flex; align-items:center; gap:4px; margin:3px; padding:6px 10px; }
+#chatBox { display:none; }
+</style>
+</head>
+<body>
+
+<!-- STEP 1: CHOOSE CLASS (first thing you see) -->
+<div id="pickClass" class="screen show">
+  <h1 class="title center" style="font-size:44px;text-shadow:0 0 20px #ff7b00">🐉 Dragon Realms D&amp;D</h1>
+  <p class="center muted" style="font-size:16px">You are a <b>scavenger</b> blessed by the gods to balance the world.<br><b style="color:var(--gold);font-size:20px">Step 1: Choose your class</b></p>
+  <div class="card"><div id="classGrid"></div><div id="classInfo" class="card" style="background:var(--panel2)"></div></div>
+  <div class="row" style="justify-content:center">
+    <button id="pickBack" style="display:none">⬅ Back</button>
+    <button class="gold big" id="pickNext">Next: Name &amp; Stats ➡</button>
+  </div>
+</div>
+
+<!-- MAIN MENU -->
+<div id="menu" class="screen">
+  <canvas id="menuBg"></canvas>
+  <div class="menuWrap">
+    <h1 class="title center">🐉 Dragon Realms D&amp;D</h1>
+    <p class="center subtitle">A scavenger blessed by the gods must balance the world… and survive the future.</p>
+    <div class="menuGrid">
+      <div class="card heroShow" id="partySummary"></div>
+      <div class="menuBtns">
+        <button class="mbtn gold" id="btnSingle"><span class="mi">🧍</span><b>Story Mode</b><small>Play alone or take turns on one screen — no Wi-Fi needed</small></button>
+        <button class="mbtn" id="btnOnline"><span class="mi">🌐</span><b>Online Co-op</b><small>Team up with friends on different devices</small></button>
+        <button class="mbtn" id="btnArena"><span class="mi">🏟️</span><b>Dragon Arena</b><small>Quick battle against any dragon tribe</small></button>
+        <div class="row smallBtns">
+          <button id="btnAddHero">➕ Add hero</button>
+          <button id="btnNewHero">🔄 New hero</button>
+          <button class="fsBtn" title="Full screen (F key)">⛶ Full screen</button>
+        </div>
+      </div>
+    </div>
+    <div class="card journeyCard"><b>🗺️ Your journey</b><div id="journey" class="journey"></div></div>
+    <details class="card how"><summary><b>📖 How to play</b></summary>
+      <ul class="muted">
+        <li>Each turn: <b>walk once</b> + <b>one action</b> (fight, ability, magic or heal) + <b>1 item</b>. Dice decide everything!</li>
+        <li>🧰 Equip a <b>weapon</b>, <b>armor</b> (it wears out — repair it!) and an <b>off-hand</b> (shield, torch, tome, charm).</li>
+        <li>🥚 Hatch dragon eggs: Guardian (+HP), Fury (+damage) or Battle (fights with you). Train them to level 5.</li>
+        <li>🎡 Spin the Wheel of Fortune with tickets or gold. 🏘️ In the village, walk up to people and talk to them to shop.</li>
+        <li>🏫 In the future school: pass the classroom tests on every floor, dodge bullies, and sleep on Floor 5. Survive 5 days!</li>
+        <li>🌟 God Power charges every turn: Divine Balance heals & revives everyone and smites all enemies.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+<!-- ARENA SETUP -->
+<div id="arena" class="screen center">
+  <h2>🏟️ Dragon Arena</h2>
+  <div class="card">
+    <div class="row" style="justify-content:center">Battlefield: <select id="arenaMap"></select></div>
+    <p class="muted">Pick 1–3 dragons to fight (click again to add another of the same tribe):</p>
+    <div id="arenaTribes"></div>
+    <p>Chosen: <b id="arenaChosen">none</b> <button id="arenaClear">Clear</button></p>
+  </div>
+  <button id="arenaBack">⬅ Back</button> <button class="gold" id="arenaNext">Next: Create hero ➡</button>
+</div>
+
+<!-- CHARACTER CREATION -->
+<div id="create" class="screen">
+  <h2>Step 2: Name your hero &amp; train your stats</h2>
+  <div class="card" id="chosenClass"></div>
+  <div class="row"><label>Name: <input id="heroName" maxlength="16" placeholder="Your hero name"></label></div>
+  <div class="card"><h3>Stat points — <span id="ptsLeft"></span> left</h3><div id="statRows"></div></div>
+  <div class="row">
+    <button id="createBack">⬅ Change class</button>
+    <button class="gold big" id="createDone">✔ Enter the world</button>
+  </div>
+</div>
+
+<!-- ONLINE LOBBY -->
+<div id="online" class="screen center">
+  <h2>🌐 Online Multiplayer</h2>
+  <div class="card" id="connectBox">
+    <p class="muted">One computer runs <b>start-server.bat</b> (or <code>node server.js</code>). Everyone on the same Wi-Fi opens the address it shows.</p>
+    <div class="row" style="justify-content:center">Server: <input id="serverAddr" placeholder="192.168.1.5:8080" size="22"></div>
+    <div class="row" style="justify-content:center;margin-top:10px">
+      <button class="gold" id="btnCreateRoom">➕ Create Room</button>
+      <span>or</span>
+      <input id="roomCode" placeholder="CODE" size="6" maxlength="4" style="text-transform:uppercase">
+      <button id="btnJoinRoom">🚪 Join Room</button>
+    </div>
+    <p id="netStatus" class="muted"></p>
+  </div>
+  <div class="card" id="lobbyBox" style="display:none">
+    <h3>Room code: <span id="lobbyCode" style="font-size:32px;letter-spacing:6px"></span></h3>
+    <p class="muted">Tell your friends this code. Players:</p>
+    <div id="lobbyList"></div>
+    <p><button class="gold big" id="btnStartOnline">⚔️ Start the adventure</button></p>
+    <p id="lobbyWait" class="muted">Waiting for the host to start…</p>
+  </div>
+  <button id="onlineBack">⬅ Main menu</button>
+</div>
+
+<!-- GAME -->
+<div id="game" class="screen">
+  <div id="topbar">
+    <div><b id="stageTitle"></b> <span class="muted" id="roundInfo"></span></div>
+    <div id="turnInfo"></div>
+    <div><span class="muted" id="roomInfo"></span> <button class="fsBtn" title="Full screen (F key)">⛶ Full screen</button> <button id="btnQuit">☰ Menu</button></div>
+  </div>
+  <div id="gameWrap">
+    <div id="leftCol">
+      <div id="board">
+        <canvas id="cv"></canvas>
+        <div id="hint"></div>
+        <div id="infoBox"></div>
+        <div id="dice"></div>
+        <div id="talk"></div>
+        <div id="modal"></div>
+      </div>
+    </div>
+    <div id="side">
+      <div class="card">
+        <div id="actions">
+          <button id="aMove">🚶 Walk</button>
+          <button id="aAtk">⚔️ Attack</button>
+          <button id="aAbility">💥 Ability</button>
+          <button id="aSpell">🔮 Magic</button>
+          <button id="aHeal">💚 Heal (3 MP)</button>
+          <button id="aGod">🌟 God Power</button>
+          <button id="aEnd" class="wide gold">⏭️ End Turn</button>
+        </div>
+      </div>
+      <div class="card" id="heroCard"></div>
+      <div class="card"><b>🧰 Equipment</b> <span class="muted">(click a slot to take it off)</span><div id="equip" class="equip"></div></div>
+      <div class="card"><b id="invTitle">🎒 Inventory (10 slots)</b><div id="inv" style="margin-top:6px"></div><div id="itemInfo" class="muted" style="margin-top:6px"></div></div>
+      <div class="card"><b>Party</b><div id="party"></div><b>Dragons</b><div id="foes"></div></div>
+      <div class="card logCard"><b>📜 Battle log</b><div id="log"></div>
+        <div id="chatBox" class="row" style="margin-top:6px"><input id="chatIn" placeholder="Chat…" style="flex:1"><button id="chatSend">Send</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="popup"></div>
+<div id="wheelBox"><div class="card"><h2 id="wheelTitle">🎡 Wheel of Fortune</h2><canvas id="wheelCv" width="320" height="320"></canvas><p id="wheelRes"></p><button class="gold" id="wheelOk">OK</button></div></div>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="render.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
